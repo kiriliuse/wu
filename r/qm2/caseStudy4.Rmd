@@ -1,7 +1,7 @@
 ---
 output:
   pdf_document:
-    latex_engine: tectonic
+    latex_engine: xelatex
     fig_caption: yes
 ---
 
@@ -43,15 +43,20 @@ data <- read.csv("CEO_compensations.csv", sep = ",")
 
 # Attach the dataset to use variable names directly
 attach(data)
+```
 
+##Task 1
+```{r}
 # Histograms for X and Y
 par(mfrow=c(1,2))  #plotting layout
 hist(SALES, main="Histogram of Sales", xlab="Sales", col="blue", breaks=50)
 hist(COMP, main="Histogram of Compensation", xlab="Compensation", col="green", breaks=50)
 ```
 
+The histogram of Sales and Compensations show the frequency distribution of data
+points.
 The histogarms seem to be aligning quite well with one another. In the lower part with more data points as
-well as in the higher regions with considerably less density of data points.
+well as in the higher regions with considerably less density of data points. The Sales histogram indicates a right-skewed distribution, while the Compansation histogram also appears skewed.
 
 To get a better overview we also plot a logarithmic scale histogram, since this will be used later for a more 
 accurate regression approximation.
@@ -63,9 +68,10 @@ hist(log2(SALES), main="Histogram for Sales", xlab="log2(Sales)", col="blue", br
 hist(log2(COMP), main="Histogram for Compensation", xlab="log2(Compensation)", col="green", breaks=50)
 ```
 
-## Regression
+##Task 2: Regression
 
 To start solving the task we first implement a standard linear regression model.
+We fit two models: one with the original data and another with log-transformed data.
 
 ```{r}
 # Simple linear regression without log-transform
@@ -78,6 +84,7 @@ variables. This signals high significance and therefore a close correlation betw
 *Sales* and *Income*.
 
 But we think we can do better by using a logarithmic scale to reduce the spread of the data.
+We fit the model with log-transformed data.
 
 ```{r}
 # Simple linear regression with log-transform
@@ -87,7 +94,7 @@ summary(model2)
 
 Looking the summary now we see an even higher significance, since we don't even see any zeroes 
 with the `SALES` variable, but also an exponential notation, meaning the value is even smaller
-and thus resulting in a better approximation model.
+and thus resulting in a better approximation model, also indicated by the smaller p-values.
 
 ## Scattering the Plot
 
@@ -109,7 +116,10 @@ abline(model2, col="red")
 
 Comparing the 2 plots we see a steeper red linear regression line. Also the spread of the data points
 is much smoother using the logarithm. More spread out in the clustering region, but also closer together in the outer
-regions.
+regions. The scatter plot with the original data shows a positive relationship with a lot of variance, while the log-transformed data plot shows a more linear and tighter relationship, indicating a better fit for the log-transformed model.
+
+##Task 3
+We calculate the R-squared values for both models.
 
 ```{r}
 # R-squared for the models
@@ -120,32 +130,73 @@ r_squared_model1
 r_squared_model2
 ```
 
-And we can also verify that the spread has decreased as is indicated by the `Multiple R-squared` in the summary. 
+And we can also verify that the spread has decreased as is indicated by the `Multiple R-squared` in the summary. The R-squared value for the original model is 0.14, indicating that about 14.1% of the variance is explained by the model. For the log-transformed model, the R-squared value is 0.2416, indicating that 24.16% of the variance is explained, which is a better fit.
 It has dramatically improved from `0.141` to `0.2416`. Almost double, therefore half the spread overall.
 
-
+##Task 4
+Based on the higher R-squared value and better fit, we choose the log-transformed model as our final model.
 ```{r}
 # Choosing the final model
 chosen_model <- model2  # Assuming log-transformed model was chosen
+```
+For the reason of less spread and a more accurate approximation we chose the logarithmic model 
+to base our predictions on.
 
+##Task 5
+We interpret the slope coefficient of the chosen model.
+```{r}
 # Interpretation of the slope
 slope <- coef(chosen_model)[2]
 slope
 ```
-
-For the reason of less spread and a more accurate approximation we chose the logarithmic model 
-to base our predictions on.
+The slope coefficient is 0.573, which means that a 1% increase in Sales is associated with approximately a 0.573% increase in Compensation, indicating a positive relationship between the firm’s sales and CEO compensation.
 
 ## Tell me Crystal Sphere
 
 Lastly we want to finally reap the fruits of our effort and predict the compensation
-of CEOs which are not included in the dataset.
+of CEOs which are not included in the dataset. 
 
 ```{r}
 # Predicting compensation for sales of 1.6384 billion USD
 sales_values <- seq(from=min(SALES), to=max(SALES), length.out=100)
 predicted_log2_compensation <- predict(chosen_model, newdata = data.frame(log2.SALES. = log2(sales_values)))
 predicted_compensation <- 2^predicted_log2_compensation
+predicted_compensation
+```
+The predicted compensation for a firm with 1.6384 billion USD in sales is calculated to be around 3123.77 thousand USD.
+
+##Task 7
+We test the significance of the sales effect on compensation.
+```{r}
+# Perform statistical test on the chosen model
+summary(chosen_model)
+```
+The p-value for the sales coefficient is much smaller than 0.05, indicating that sales have a significant effect on CEO compensation.
+
+##Task 8
+We standardize the variables and fit the new model.
+```{r}
+# Standardize the variables
+log2_sales_std <- scale(log2(SALES))
+log2_compensation_std <- scale(log2(COMP))
+
+# Fit the model with standardized variables
+model_std <- lm(log2_compensation_std ~ log2_sales_std)
+summary(model_std)
+```
+The standardized model helps in interpreting the coefficients in terms of standard deviations. The summary shows that the standardized coefficient is significant.
+
+##Task 9
+We verify the relationship between the regression coefficient and the correlation coefficient.
+```{r}
+# Verify that one of the coefficients is the correlation coefficient
+correlation <- cor(log2_sales_std, log2_compensation_std)
+coef_model_std <- coef(model_std)[2]
+
+list(correlation = correlation, coef_model_std = coef_model_std)
+```
+The regression coefficient for the standardized variables is equal to the sample correlation coefficient, which confirms that the standardized regression coefficient is the correlation coefficient between the variables. This is because in standardized regression, the slope is the same as the Pearson correlation coefficient.
+
 predicted_compensation
 ```
 
